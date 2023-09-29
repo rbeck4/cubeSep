@@ -101,4 +101,4 @@ if __name__ == '__main__':
   filename = sys.argv[-1]
 
   atom = Cube(filename)
-  
+  ncubs = atom.get_numCubes()
