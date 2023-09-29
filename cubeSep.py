@@ -2,8 +2,11 @@
 #Gonna need to pray to St. Isidore for this one
 
 import numpy as np
-from os.path import exists
+import os.path
+import psutil
+import struct
 import sys
+from tempfile import mkdtemp
 import time
 
 class Cube:
@@ -33,10 +36,16 @@ class Cube:
     self.nC     = None
     self.atoms  = []
     self.vals   = None
+    self.tmpfl  = None
 
     #Ensure supplied file exists and isn't script:
-    if filename == 'cubeSep.py' or not exists(filename):
+    if filename == 'cubeSep.py' or not os.path.exists(filename):
       raise NameError("File %s either does not exist or is self." %filename)
+
+    #In case of RAM limitations:
+    if 2 * os.path.getsize(filename) >= (0.6) * psutil.virtual_memory()[1]:
+      print("Large cube, using memmap")
+      self.tmpfl = os.path.join(mkdtemp(), 'newfile.dat')
 
     with open(filename, 'r') as f:
       tick = time.time()
@@ -70,9 +79,21 @@ class Cube:
         self.nMOs = int(line[0])
       
       #Get the volumetric data (to the end of the file)
-      #Probably not fastest way of doing things, but w/o foreknowledge abt the
-      #type of job we can't pre-allocate the array very well...
-      self.vals = np.asarray([float(v) for s in f for v in s.split()])
+      #We will need to have either into ram or into file depending on file
+      #size, and computer memory... if you have a better way of doing this
+      #let me know!
+      if not self.tmpfl:
+        self.vals = np.asarray([float(v) for s in f for v in s.split()])
+      else:
+        tmpLength = 0
+        with open(self.tmpfl, 'wb') as binFl:
+          for line in f:
+            load = line.split()
+            tmpLength += len(load)
+            for i in range(len(load)):
+              binFl.write(struct.pack("f", float(load[i])))
+        self.vals = np.memmap(self.tmpfl, dtype=float, mode='r')
+        print(self.vals)
 
       #Determine 
       self.nC = int(len(self.vals) / \
@@ -178,7 +199,7 @@ class Cube:
     tick = time.time()
     with open(fileNameOut, 'w') as f:
       for i in self.comment:
-          print(str(i),file=f)
+        print(str(i),file=f)
       print(" %4d %.6f %.6f %.6f" % (self.sign*self.natoms, 
           self.origin[0], self.origin[1],self.origin[2]),file=f)
       print(" %4d %.6f %.6f %.6f" % (self.nx, self.x[0], self.x[1],
@@ -204,7 +225,7 @@ class Cube:
           print('', file=f)
 
     tock = time.time()
-    print("Finished writing file in %.2f s." %(tock-tick))
+    print("Finished writing %s in %.2f s." %(fileNameOut, tock-tick))
 
 
 if __name__ == '__main__':
@@ -241,4 +262,4 @@ if __name__ == '__main__':
 
   atom = Cube(filename)
   ncubs = atom.get_numCubes()
-  atom.write_to_file(atom.get_volRA()[0], "testVolRA.cube")
+  atom.write_to_file(atom.get_volRA()[0], "testVolRA.mm")
