@@ -2,6 +2,7 @@
 #Gonna need to pray to St. Isidore for this one
 
 import numpy as np
+from os.path import exists
 import sys
 import time
 
@@ -12,7 +13,11 @@ class Cube:
      resulting cube files out to be opened in programs such as GaussView or
      PyMol.
   '''
-  def __init__(self, filename)
+  def __init__(self, filename):
+    '''
+    Initialize, read in and set up cube file.  Need to call specific method with
+    this version of the script (between real/complex1c/complex2c).
+    '''
     self.comment = []
     self.sign   = None #Num. Atms sign det. if total den or molec. orb.
     self.natoms = None
@@ -27,6 +32,11 @@ class Cube:
     self.z      = None
     self.nC     = None
     self.atoms  = []
+    self.vals   = None
+
+    #Ensure supplied file exists and isn't script:
+    if filename == 'cubeSep.py' or not exists(filename):
+      raise NameError("File %s either does not exist or is self." %filename)
 
     with open(filename, 'r') as f:
       tick = time.time()
@@ -62,43 +72,173 @@ class Cube:
       #Get the volumetric data (to the end of the file)
       #Probably not fastest way of doing things, but w/o foreknowledge abt the
       #type of job we can't pre-allocate the array very well...
-      vals = np.asarray([float(v) for s in f for v in s.split()])
+      self.vals = np.asarray([float(v) for s in f for v in s.split()])
 
       #Determine 
-      self.nC = int(len(vals) / (self.nx * self.ny * self.nz * self.ncubes))
+      self.nC = int(len(self.vals) / \
+                    (self.nx * self.ny * self.nz * self.ncubes))
 
       #Cube File Valid?
-      if self.nC != 1 or self.nC != 2 or self.nC !=4:
+      if self.nC != 1 and self.nC != 2 and self.nC !=4:
         raise NameError("Num. Comp. of %i in cubfile not (yet) valid" %self.nC)
 
       tock = time.time()
-      print("Initialized in %.2f s" %(tock-tick))
+      print("Initialized in %.2f s." %(tock-tick))
 
+  
   def get_numCubes(self):
     '''
     Getter fxn for number of cubes
     '''
-    return self.numCubes
+    return self.ncubes
 
-  def do_vspin(self, cubeSelect=1):
+  def cube_select(self, cubeSelect=1):
+    '''
+    Return the data array for the selected cube of interest)
+    May not be the most memory efficient, but is readable so....
+    '''
+    #Ensure cubeSelect is within range:
+    if cubeSelect < 0:
+      print("Warning, the selected cube (%i) is out of range, setting to 1" \
+            %cubeSelect)
+      cubeSelect = 1
+    
+    elif cubeSelect > self.ncubes:
+      print("Warning, the selected cube (%i) is out of range, setting to max" \
+            %cubeSelect)
+      cubeSelect = self.ncubes
+    
+    return self.vals.reshape(-1,self.ncubes*self.nC)\
+                        [:,(cubeSelect-1)*self.nC:cubeSelect*self.nC]\
+                        .reshape(-1)
+  
+  def get_vspin(self, cubeSelect=1):
     '''
     For Mag. information
     '''
-    
     #Only def. in o.g. for complex. two-comp case
     if self.nC != 4:
       raise NameError("Can't do for num Comp. = %i." %self.nC)
     
-    #Select cube of interest, may not be most mem efficient, but can read so...
-    data = vals.reshape(-1,self.ncubes*self.nC)\
-                        [:,(cubeSelect-1)*self.nC:cubeSelect*self.nC]\
-                        .reshape(-1)
+    data = self.cube_select(cubeSelect)
     #Return N, Mx, My, Mz:
     return [data[0::self.nC], data[1::self.nC], \
             data[2::self.nC], data[3::self.nC]]
 
+  
+  def get_volRA(self, cubeSelect=1):
+    '''
+    General volRA (and normRA) return)
+    '''
+    data = self.cube_select(cubeSelect)
+    #RA is always first, separation would be nC, but know that too:
+    return [data[0::self.nC], np.sqrt(np.square(data[0::self.nC]))]
+
+
+  def get_volRB(self, cubeSelect=1):
+    '''
+    General volRB (and normRB) return)
+    '''
+    if self.nC < 4:
+      raise NameError("B orbitals not included for numComponent = %i" %self.nC)
+
+    data = self.cube_select(cubeSelect)
+    #RA is always first, separation would be nC, but know that too:
+    return [data[2::self.nC], np.sqrt(np.square(data[2::self.nC]))]
+
+
+  def get_volIA(self, cubeSelect=1):
+    '''
+    General volIA (and normIA) return)
+    '''
+    if self.nC < 2:
+      raise NameError("IA orbitals not included for numComponent = %i" %self.nC)
+
+    data = self.cube_select(cubeSelect)
+    #RA is always first, separation would be nC, but know that too:
+    return [data[1::self.nC], np.sqrt(np.square(data[1::self.nC]))]
+
+
+  def get_volIB(self, cubeSelect=1):
+    '''
+    General volIB (and normIB) return)
+    '''
+    if self.nC < 4:
+      raise NameError("IB orbitals not included for numComponent = %i" %self.nC)
+
+    data = self.cube_select(cubeSelect)
+    #RA is always first, separation would be nC, but know that too:
+    return [data[3::self.nC], np.sqrt(np.square(data[3::self.nC]))]
+
+
+  def write_to_file(self, cubeData, fileNameOut="cub.cube"):
+    '''
+    Write single cube file to fileNameOut)
+    '''
+    tick = time.time()
+    with open(fileNameOut, 'w') as f:
+      for i in self.comment:
+          print(str(i),file=f)
+      print(" %4d %.6f %.6f %.6f" % (self.sign*self.natoms, 
+          self.origin[0], self.origin[1],self.origin[2]),file=f)
+      print(" %4d %.6f %.6f %.6f" % (self.nx, self.x[0], self.x[1],
+          self.x[2]), file=f)
+      print(" %4d %.6f %.6f %.6f" % (self.ny, self.y[0], self.y[1],
+          self.y[2]), file=f)
+      print(" %4d %.6f %.6f %.6f" % (self.nz, self.z[0], self.z[1],
+          self.z[2]), file=f)
+      for atom in self.atoms:
+          print(" %s %s %s %s %s" % (atom[0], atom[1], atom[2], atom[3],
+              atom[4]), file=f)
+      if self.sign < 0:
+          print("    1    "+str(self.natoms),file=f)
+      lineidx = 0
+      for i in range(len(cubeData)):
+        lineidx += 1
+        print( "%.5e " % cubeData[i], file=f, end='')
+        if (lineidx == 6):
+          lineidx = 0
+          print('', file=f)
+        if (i % self.nz == self.nz-1):
+          lineidx = 0
+          print('', file=f)
+
+    tock = time.time()
+    print("Finished writing file in %.2f s." %(tock-tick))
+
+
 if __name__ == '__main__':
+  '''
+  There are getter functions for the select volumes real/imag. A/B.  These will
+  also return the magnitude of each val (sqrt(val**2)) as the second element of
+  the return (e.g. get_volRA() will return [vol_RA, mag_RA]).  For other values
+  (Norm/Arg) you will want to supply these values to the printing (e.g. for the
+  Argument of A write_to_file(np.arctan2(get_volRA), "argA.cube")).
+  Potential values of interest:
+    RA : Real alpha part of cube (get_volRA()[0])
+    IA : Imaginary alpha part of cube (get_volIA()[0]) (num. component >= 2)
+    RB : Real beta part of cube (get_volRB()[0])       (num. component >= 4)
+    IB : Imaginary beta part of cube (get_volIB()[0])  (num. component >= 4)
+    ArgA : Argument alpha (np.arctan2(get_volRA()[0], get_volIA()[0])
+                                                       (num. component >= 2)
+    ArgB : Argument beta (np.arctan2(get_volRB()[0], get_volIB()[0]) 
+                                                       (num. component >= 4)
+    MagA : Magnitude alpha (get_volRA()[1] + get_volIA()[1])                                                      
+                                                       (num. component >= 2)
+    MagB : Magnitude beta (get_volRB()[1] + get_volIB()[1])
+                                                       (num. component >= 4)
+    MagABr : Magnitude between alpha and beta in GHF (get_volRA()[1] + 
+             get_volRB()[1])                           (num. component >= 4)
+    ArgABr : Argument between alpha and beta in GHF (np.arctan2(get_volRA()[0], 
+             get_volRB()[0]))                          (num. component >= 4)
+    NormA : Norm for real/imaginary parts (get_volRA()[1] + get_volIA()[1])
+                                                       (num. component >= 2)
+    NormB : Norm for real/imaginary parts (get_volRB()[1] + get_volIB()[1])
+                                                       (num. component >= 2)
+    '''                                                       
+
   filename = sys.argv[-1]
 
   atom = Cube(filename)
   ncubs = atom.get_numCubes()
+  atom.write_to_file(atom.get_volRA()[0], "testVolRA.cube")
