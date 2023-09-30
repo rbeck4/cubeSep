@@ -92,15 +92,14 @@ class Cube:
             tmpLength += len(load)
             for i in range(len(load)):
               binFl.write(struct.pack("f", float(load[i])))
-        self.vals = np.memmap(self.tmpfl, dtype=float, mode='r')
-        print(self.vals)
+        self.vals = np.memmap(self.tmpfl, dtype=np.float32, mode='r')
 
       #Determine 
       self.nC = int(len(self.vals) / \
                     (self.nx * self.ny * self.nz * self.ncubes))
 
       #Cube File Valid?
-      if self.nC != 1 and self.nC != 2 and self.nC !=4:
+      if self.nC not in [1, 2, 4]:
         raise NameError("Num. Comp. of %i in cubfile not (yet) valid" %self.nC)
 
       tock = time.time()
@@ -262,4 +261,4 @@ if __name__ == '__main__':
 
   atom = Cube(filename)
   ncubs = atom.get_numCubes()
-  atom.write_to_file(atom.get_volRA()[0], "testVolRA.mm")
+  atom.write_to_file(atom.get_volRA()[0], "testVolRA.cube")
