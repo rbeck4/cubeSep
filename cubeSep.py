@@ -118,12 +118,12 @@ class Cube:
     May not be the most memory efficient, but is readable so....
     '''
     #Ensure cubeSelect is within range:
-    if cubeSelect < 0:
+    if cubeSelect < 1:
       print("Warning, the selected cube (%i) is out of range, setting to 1" \
             %cubeSelect)
       cubeSelect = 1
     
-    elif cubeSelect > self.ncubes:
+    if cubeSelect > self.ncubes:
       print("Warning, the selected cube (%i) is out of range, setting to max" \
             %cubeSelect)
       cubeSelect = self.ncubes
@@ -152,7 +152,7 @@ class Cube:
     '''
     data = self.cube_select(cubeSelect)
     #RA is always first, separation would be nC, but know that too:
-    return [data[0::self.nC], np.sqrt(np.square(data[0::self.nC]))]
+    return data[0::self.nC]
 
 
   def get_volRB(self, cubeSelect=1):
@@ -164,7 +164,7 @@ class Cube:
 
     data = self.cube_select(cubeSelect)
     #RA is always first, separation would be nC, but know that too:
-    return [data[2::self.nC], np.sqrt(np.square(data[2::self.nC]))]
+    return data[2::self.nC]
 
 
   def get_volIA(self, cubeSelect=1):
@@ -176,7 +176,7 @@ class Cube:
 
     data = self.cube_select(cubeSelect)
     #RA is always first, separation would be nC, but know that too:
-    return [data[1::self.nC], np.sqrt(np.square(data[1::self.nC]))]
+    return data[1::self.nC]
 
 
   def get_volIB(self, cubeSelect=1):
@@ -188,7 +188,7 @@ class Cube:
 
     data = self.cube_select(cubeSelect)
     #RA is always first, separation would be nC, but know that too:
-    return [data[3::self.nC], np.sqrt(np.square(data[3::self.nC]))]
+    return data[3::self.nC]
 
 
   def write_to_file(self, cubeData, fileNameOut="cub.cube"):
@@ -241,24 +241,44 @@ if __name__ == '__main__':
     IB : Imaginary beta part of cube (get_volIB()[0])  (num. component >= 4)
     ArgA : Argument alpha (np.arctan2(get_volRA()[0], get_volIA()[0])
                                                        (num. component >= 2)
-    ArgB : Argument beta (np.arctan2(get_volRB()[0], get_volIB()[0]) 
+    ArgB : Argument beta (np.arctan2(get_volRB()[0], get_volIB()[0])) 
                                                        (num. component >= 4)
-    MagA : Magnitude alpha (get_volRA()[1] + get_volIA()[1])                                                      
+    MagA : Magnitude alpha sqrt((get_volRA()**2 + get_volIA()**2))                                                      
                                                        (num. component >= 2)
-    MagB : Magnitude beta (get_volRB()[1] + get_volIB()[1])
+    MagB : Magnitude beta (sqrt(get_volRB()**2 + get_volIB()**2))
                                                        (num. component >= 4)
-    MagABr : Magnitude between alpha and beta in GHF (get_volRA()[1] + 
-             get_volRB()[1])                           (num. component >= 4)
+    MagABr : Magnitude between alpha and beta in GHF (sqrt(get_volRA()**2 + 
+             get_volRB()**2))                          (num. component >= 4)
     ArgABr : Argument between alpha and beta in GHF (np.arctan2(get_volRA()[0], 
              get_volRB()[0]))                          (num. component >= 4)
-    NormA : Norm for real/imaginary parts (get_volRA()[1] + get_volIA()[1])
-                                                       (num. component >= 2)
-    NormB : Norm for real/imaginary parts (get_volRB()[1] + get_volIB()[1])
-                                                       (num. component >= 2)
+    NormA : Norm for real/imaginary parts sqrt((get_volRA()**2 + 
+             get_volIA()**2 + get_volRB()**2 + get_volIB()**2))
+                                                       (num. component >= 4)
     '''                                                       
-
   filename = sys.argv[-1]
-
+  basename = filename.replace(".cube",'')
   atom = Cube(filename)
   ncubs = atom.get_numCubes()
-  atom.write_to_file(atom.get_volRA()[0], "testVolRA.cube")
+  for i in range(1,ncubs+1):
+    atom.write_to_file(atom.get_volRA(cubeSelect=i), \
+                       basename+"ra_%i.cube" %i)
+    atom.write_to_file(atom.get_volRB(cubeSelect=i), 
+                       basename+"rb_%i.cube" %i)
+    atom.write_to_file(np.sqrt(np.square(atom.get_volRA(cubeSelect=i)) + \
+                       np.square(atom.get_volIA(cubeSelect=i))), \
+                       basename+"maga_%i.cube" %i)
+    atom.write_to_file(np.sqrt(np.square(atom.get_volRB(cubeSelect=i)) + \
+                       np.square(atom.get_volIB(cubeSelect=i))), \
+                       basename+"magb_%i.cube" %i)
+    atom.write_to_file(np.arctan2(atom.get_volRA(cubeSelect=i), \
+                       atom.get_volIA(cubeSelect=i)), \
+                       basename+"arga_%i.cube" %i)
+    atom.write_to_file(np.arctan2(atom.get_volRB(cubeSelect=i), \
+                       atom.get_volIB(cubeSelect=i)), \
+                       basename+"argb_%i.cube" %i)
+    atom.write_to_file(np.sqrt(np.square(atom.get_volRA(cubeSelect=i)) + \
+                       np.square(atom.get_volRB(cubeSelect=i))), \
+                       basename+"magabr_%i.cube" %i)
+    atom.write_to_file(np.arctan2(atom.get_volRA(cubeSelect=i), \
+                       atom.get_volRB(cubeSelect=i)), \
+                       basename+"argabr_%i.cube" %i)
