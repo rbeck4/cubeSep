@@ -6,7 +6,6 @@ import os.path
 import psutil
 import struct
 import sys
-from tempfile import mkdtemp
 import time
 
 class Cube:
@@ -45,7 +44,7 @@ class Cube:
     #In case of RAM limitations:
     if 2 * os.path.getsize(filename) >= (0.6) * psutil.virtual_memory()[1]:
       print("Large cube, using memmap")
-      self.tmpfl = os.path.join(mkdtemp(), 'newfile.dat')
+      self.tmpfl = 'cubeSep_tempFile.dat'
 
     with open(filename, 'r') as f:
       tick = time.time()
@@ -106,6 +105,21 @@ class Cube:
       print("Initialized in %.2f s." %(tock-tick))
 
   
+  def __enter__(self):
+    '''
+    Needed to use with?
+    '''
+    return self
+
+
+  def __exit__(self, exc_type, exc_value, traceback):
+    '''
+    If used memmap remove the file so doesn't clog up file system
+    '''
+    if self.tmpfl:
+      os.unlink(self.tmpfl)
+
+
   def get_numCubes(self):
     '''
     Getter fxn for number of cubes
@@ -257,28 +271,28 @@ if __name__ == '__main__':
     '''                                                       
   filename = sys.argv[-1]
   basename = filename.replace(".cube",'')
-  atom = Cube(filename)
-  ncubs = atom.get_numCubes()
-  for i in range(1,ncubs+1):
-    atom.write_to_file(atom.get_volRA(cubeSelect=i), \
-                       basename+"ra_%i.cube" %i)
-    atom.write_to_file(atom.get_volRB(cubeSelect=i), 
-                       basename+"rb_%i.cube" %i)
-    atom.write_to_file(np.sqrt(np.square(atom.get_volRA(cubeSelect=i)) + \
-                       np.square(atom.get_volIA(cubeSelect=i))), \
-                       basename+"maga_%i.cube" %i)
-    atom.write_to_file(np.sqrt(np.square(atom.get_volRB(cubeSelect=i)) + \
-                       np.square(atom.get_volIB(cubeSelect=i))), \
-                       basename+"magb_%i.cube" %i)
-    atom.write_to_file(np.arctan2(atom.get_volRA(cubeSelect=i), \
-                       atom.get_volIA(cubeSelect=i)), \
-                       basename+"arga_%i.cube" %i)
-    atom.write_to_file(np.arctan2(atom.get_volRB(cubeSelect=i), \
-                       atom.get_volIB(cubeSelect=i)), \
-                       basename+"argb_%i.cube" %i)
-    atom.write_to_file(np.sqrt(np.square(atom.get_volRA(cubeSelect=i)) + \
-                       np.square(atom.get_volRB(cubeSelect=i))), \
-                       basename+"magabr_%i.cube" %i)
-    atom.write_to_file(np.arctan2(atom.get_volRA(cubeSelect=i), \
-                       atom.get_volRB(cubeSelect=i)), \
-                       basename+"argabr_%i.cube" %i)
+  with Cube(filename) as atom:
+    ncubs = atom.get_numCubes()
+    for i in range(1,ncubs+1):
+      atom.write_to_file(atom.get_volRA(cubeSelect=i), \
+                         basename+"_splitRa_%i.cube" %i)
+      atom.write_to_file(atom.get_volRB(cubeSelect=i), 
+                         basename+"_splitRb_%i.cube" %i)
+      atom.write_to_file(np.sqrt(np.square(atom.get_volRA(cubeSelect=i)) + \
+                         np.square(atom.get_volIA(cubeSelect=i))), \
+                         basename+"_splitMaga_%i.cube" %i)
+      atom.write_to_file(np.sqrt(np.square(atom.get_volRB(cubeSelect=i)) + \
+                         np.square(atom.get_volIB(cubeSelect=i))), \
+                         basename+"_splitMagb_%i.cube" %i)
+      atom.write_to_file(np.arctan2(atom.get_volRA(cubeSelect=i), \
+                         atom.get_volIA(cubeSelect=i)), \
+                         basename+"_splitArga_%i.cube" %i)
+      atom.write_to_file(np.arctan2(atom.get_volRB(cubeSelect=i), \
+                         atom.get_volIB(cubeSelect=i)), \
+                         basename+"_splitArgb_%i.cube" %i)
+      atom.write_to_file(np.sqrt(np.square(atom.get_volRA(cubeSelect=i)) + \
+                         np.square(atom.get_volRB(cubeSelect=i))), \
+                         basename+"_splitMagabr_%i.cube" %i)
+      atom.write_to_file(np.arctan2(atom.get_volRA(cubeSelect=i), \
+                         atom.get_volRB(cubeSelect=i)), \
+                         basename+"_splitArgabr_%i.cube" %i)
