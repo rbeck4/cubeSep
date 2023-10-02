@@ -25,6 +25,7 @@ class Cube:
     self.natoms = None
     self.ncubes = None
     self.nMOs   = None
+    self.MOnames= []
     self.origin = None
     self.nx     = None
     self.ny     = None
@@ -71,11 +72,18 @@ class Cube:
         line = f.readline().split()
         self.atoms.append(line)
   
-      #How many cubes are in file?
-      line = f.readline().split()
-      if self.sign < 0:
-        #Mult MOs
-        self.nMOs = int(line[0])
+      #MO labels (if MO), can stretch multiple lines
+      fullMO = 0
+      while fullMO < 1: 
+        line = f.readline().split()
+        #Get number of elements (should be eq. to ncubes but...)
+        if self.sign < 0 and not self.nMOs:
+          #Mult MOs
+          self.nMOs = int(line.pop(0))
+        for x in line:
+          self.MOnames.append(x)
+        if len(self.MOnames) >= self.nMOs:
+          fullMO = 10
       
       #Get the volumetric data (to the end of the file)
       #We will need to have either into ram or into file depending on file
@@ -205,9 +213,10 @@ class Cube:
     return data[3::self.nC]
 
 
-  def write_to_file(self, cubeData, fileNameOut="cub.cube"):
+  def write_to_file(self, cubeData, fileNameOut="cub.cube", cubeSelect=1):
     '''
-    Write single cube file to fileNameOut)
+    Write single cube file to fileNameOut, need selected cube if you want the
+    title to carry over from the combined cube file
     '''
     tick = time.time()
     with open(fileNameOut, 'w') as f:
@@ -225,7 +234,7 @@ class Cube:
           print(" %s %s %s %s %s" % (atom[0], atom[1], atom[2], atom[3],
               atom[4]), file=f)
       if self.sign < 0:
-          print("    1    "+str(self.natoms),file=f)
+          print("    1    "+self.MOnames[cubeSelect-1],file=f)
       lineidx = 0
       for i in range(len(cubeData)):
         lineidx += 1
@@ -275,24 +284,24 @@ if __name__ == '__main__':
     ncubs = atom.get_numCubes()
     for i in range(1,ncubs+1):
       atom.write_to_file(atom.get_volRA(cubeSelect=i), \
-                         basename+"_splitRa_%i.cube" %i)
+                         basename+"_splitRa_%i.cube" %i, cubeSelect=i)
       atom.write_to_file(atom.get_volRB(cubeSelect=i), 
-                         basename+"_splitRb_%i.cube" %i)
+                         basename+"_splitRb_%i.cube" %i, cubeSelect=i)
       atom.write_to_file(np.sqrt(np.square(atom.get_volRA(cubeSelect=i)) + \
                          np.square(atom.get_volIA(cubeSelect=i))), \
-                         basename+"_splitMaga_%i.cube" %i)
+                         basename+"_splitMaga_%i.cube" %i, cubeSelect=i)
       atom.write_to_file(np.sqrt(np.square(atom.get_volRB(cubeSelect=i)) + \
                          np.square(atom.get_volIB(cubeSelect=i))), \
-                         basename+"_splitMagb_%i.cube" %i)
+                         basename+"_splitMagb_%i.cube" %i, cubeSelect=i)
       atom.write_to_file(np.arctan2(atom.get_volRA(cubeSelect=i), \
                          atom.get_volIA(cubeSelect=i)), \
-                         basename+"_splitArga_%i.cube" %i)
+                         basename+"_splitArga_%i.cube" %i, cubeSelect=i)
       atom.write_to_file(np.arctan2(atom.get_volRB(cubeSelect=i), \
                          atom.get_volIB(cubeSelect=i)), \
-                         basename+"_splitArgb_%i.cube" %i)
+                         basename+"_splitArgb_%i.cube" %i, cubeSelect=i)
       atom.write_to_file(np.sqrt(np.square(atom.get_volRA(cubeSelect=i)) + \
                          np.square(atom.get_volRB(cubeSelect=i))), \
-                         basename+"_splitMagabr_%i.cube" %i)
+                         basename+"_splitMagabr_%i.cube" %i, cubeSelect=i)
       atom.write_to_file(np.arctan2(atom.get_volRA(cubeSelect=i), \
                          atom.get_volRB(cubeSelect=i)), \
-                         basename+"_splitArgabr_%i.cube" %i)
+                         basename+"_splitArgabr_%i.cube" %i, cubeSelect=i)
