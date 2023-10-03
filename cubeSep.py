@@ -252,12 +252,15 @@ class Cube:
 
 if __name__ == '__main__':
   '''
-  There are getter functions for the select volumes real/imag. A/B.  These will
-  also return the magnitude of each val (sqrt(val**2)) as the second element of
-  the return (e.g. get_volRA() will return [vol_RA, mag_RA]).  For other values
-  (Norm/Arg) you will want to supply these values to the printing (e.g. for the
-  Argument of A write_to_file(np.arctan2(get_volRA), "argA.cube")).
-  Potential values of interest:
+  Please view https://doi.org/10.1002/jcc.26196.
+  There are getter functions for the select volumes real/imag. A/B. Printing is
+  general, and just needs a data array passed in, it will format as a Gaussian
+  cube file.  This script is able to handle cube files that contain multiple
+  cube files (e.g. cubegen 1 MO=1-3 test.fchk test.cube).  The example uses a
+  'with' statement so that in the case of large cube files, the generated 
+  temporary files can be cleaned from the file system.
+  
+  Potential cubes of interest:
     RA : Real alpha part of cube (get_volRA()[0])
     IA : Imaginary alpha part of cube (get_volIA()[0]) (num. component >= 2)
     RB : Real beta part of cube (get_volRB()[0])       (num. component >= 4)
@@ -270,13 +273,10 @@ if __name__ == '__main__':
                                                        (num. component >= 2)
     MagB : Magnitude beta (sqrt(get_volRB()**2 + get_volIB()**2))
                                                        (num. component >= 4)
-    MagABr : Magnitude between alpha and beta in GHF (sqrt(get_volRA()**2 + 
-             get_volRB()**2))                          (num. component >= 4)
-    ArgABr : Argument between alpha and beta in GHF (np.arctan2(get_volRA()[0], 
-             get_volRB()[0]))                          (num. component >= 4)
-    NormA : Norm for real/imaginary parts sqrt((get_volRA()**2 + 
-             get_volIA()**2 + get_volRB()**2 + get_volIB()**2))
-                                                       (num. component >= 4)
+    MagAB : Magnitude between alpha and beta in GHF (sqrt(RA**2 + IA**2 + 
+             RB**2 + IB**2))                           (num. component >= 4)
+    ArgAB : Argument between alpha and beta in GHF (np.arctan2(sqrt(MagA), 
+             sqrt(MagB)))                              (num. component >= 4)
     '''                                                       
   filename = sys.argv[-1]
   basename = filename.replace(".cube",'')
@@ -300,8 +300,13 @@ if __name__ == '__main__':
                          atom.get_volIB(cubeSelect=i)), \
                          basename+"_splitArgb_%i.cube" %i, cubeSelect=i)
       atom.write_to_file(np.sqrt(np.square(atom.get_volRA(cubeSelect=i)) + \
-                         np.square(atom.get_volRB(cubeSelect=i))), \
-                         basename+"_splitMagabr_%i.cube" %i, cubeSelect=i)
-      atom.write_to_file(np.arctan2(atom.get_volRA(cubeSelect=i), \
-                         atom.get_volRB(cubeSelect=i)), \
-                         basename+"_splitArgabr_%i.cube" %i, cubeSelect=i)
+                         np.square(atom.get_volIA(cubeSelect=i)) + \
+                         np.square(atom.get_volRB(cubeSelect=i)) + \
+                         np.square(atom.get_volIB(cubeSelect=i))), \
+                         basename+"_splitMagab_%i.cube" %i, cubeSelect=i)
+      atom.write_to_file(np.arctan2(np.sqrt( \
+                         np.square(atom.get_volRA(cubeSelect=i) + \
+                         np.square(atom.get_volIA(cubeSelect=i)))), \
+                         np.sqrt(np.square(atom.get_volRB(cubeSelect=i)) + \
+                         np.square(atom.get_volIB(cubeSelect=i)))), \
+                         basename+"_splitArgab_%i.cube" %i, cubeSelect=i)
