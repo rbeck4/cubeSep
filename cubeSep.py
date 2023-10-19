@@ -293,11 +293,11 @@ if __name__ == '__main__':
       atom.write_to_file(np.sqrt(np.square(atom.get_volRB(cubeSelect=i)) + \
                          np.square(atom.get_volIB(cubeSelect=i))), \
                          basename+"_splitMagb_%i.cube" %i, cubeSelect=i)
-      atom.write_to_file(np.arctan2(atom.get_volRA(cubeSelect=i), \
-                         atom.get_volIA(cubeSelect=i)), \
+      atom.write_to_file(np.arctan2(atom.get_volIA(cubeSelect=i), \
+                         atom.get_volRA(cubeSelect=i)), \
                          basename+"_splitArga_%i.cube" %i, cubeSelect=i)
-      atom.write_to_file(np.arctan2(atom.get_volRB(cubeSelect=i), \
-                         atom.get_volIB(cubeSelect=i)), \
+      atom.write_to_file(np.arctan2(atom.get_volIB(cubeSelect=i), \
+                         atom.get_volRB(cubeSelect=i)), \
                          basename+"_splitArgb_%i.cube" %i, cubeSelect=i)
       atom.write_to_file(np.sqrt(np.square(atom.get_volRA(cubeSelect=i)) + \
                          np.square(atom.get_volIA(cubeSelect=i)) + \
