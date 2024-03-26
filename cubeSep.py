@@ -265,7 +265,8 @@ if __name__ == '__main__':
 
   **PLEASE NOTE**
   As of GDV J25p, the format of the generated .cube file has changed, as such
-  the j25p=True flag must be set when itializing the class.
+  the j25p=True flag must be set when itializing the class.  This will work for
+  [g]eneral wvfxns, you will not want to set it for ([u]n)[r]estricted wvfxns.
   
   Potential cubes of interest:
     RA : Real alpha part of cube (get_volRA()[0])
