@@ -15,7 +15,7 @@ class Cube:
      resulting cube files out to be opened in programs such as GaussView or
      PyMol.
   '''
-  def __init__(self, filename):
+  def __init__(self, filename, j25p=False):
     '''
     Initialize, read in and set up cube file.  Need to call specific method with
     this version of the script (between real/complex1c/complex2c).
@@ -59,7 +59,10 @@ class Cube:
       self.sign   = np.sign(int(line[0]))
       self.origin = np.array([float(line[x]) for x in range(1,4)])
       #Number of cubes in file:
-      self.ncubes = int(line[4])
+      if j25p:
+        self.ncubes = int(int(line[4]) / 4)
+      else:
+        self.ncubes = int(line[4])
       
       #Number voxels and axis vect
       for vector in [['nx','x'],['ny','y'],['nz','z']]:
@@ -259,6 +262,10 @@ if __name__ == '__main__':
   cube files (e.g. cubegen 1 MO=1-3 test.fchk test.cube).  The example uses a
   'with' statement so that in the case of large cube files, the generated 
   temporary files can be cleaned from the file system.
+
+  **PLEASE NOTE**
+  As of GDV J25p, the format of the generated .cube file has changed, as such
+  the j25p=True flag must be set when itializing the class.
   
   Potential cubes of interest:
     RA : Real alpha part of cube (get_volRA()[0])
@@ -280,7 +287,7 @@ if __name__ == '__main__':
     '''                                                       
   filename = sys.argv[-1]
   basename = filename.replace(".cube",'')
-  with Cube(filename) as atom:
+  with Cube(filename, j25p=False) as atom:
     ncubs = atom.get_numCubes()
     for i in range(1,ncubs+1):
       atom.write_to_file(atom.get_volRA(cubeSelect=i), \
